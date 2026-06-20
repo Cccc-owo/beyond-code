@@ -10,7 +10,7 @@ English | [中文](README_zh-CN.md)
 
 In my vibe coding practice, I tried several AI-process-driven skills: [Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec), [obra/superpowers](https://github.com/obra/superpowers), [open-gsd/gsd-core](https://github.com/open-gsd/gsd-core). They are powerful, but I ran into problems.
 
-Some are clean and lightweight, yet after generating a plan they jump straight to implementation without waiting for my confirmation. I often have to ask the agent to walk me through the approach and revise the plan myself. The final verification is also shallow — I still find quality issues when I test things by hand.
+Some are clean and lightweight, yet after generating a plan they jump straight to ask for my permission without explaining the plan. I often have to ask the agent to walk me through the approach and revise the plan myself. The final verification is also shallow — I still find quality issues when I test things by hand.
 
 Some are thorough and disciplined, but every step requires CLI interactions or bash commands to gather state, burning context on infrastructure instead of thinking.
 
