@@ -39,6 +39,9 @@ The complete file skeleton:
 # Components & Contracts
 <!-- omit if no new or changed component interfaces -->
 
+# Tradeoffs & Risks
+<!-- always write -->
+
 # Impact on Existing Modules
 <!-- always write -->
 
@@ -66,6 +69,12 @@ changing existing component interfaces. For each component, describe:
 - Dependencies: what other components it calls.
 Do not describe implementation internals — that belongs to the build
 phase.
+
+**Tradeoffs & Risks** — always write. Name at least one design
+tradeoff (why you chose approach A over B) and at least one risk
+(what could go wrong, what assumption could prove false). Write
+for a reviewer who needs to judge whether the plan is sound before
+giving the go-ahead.
 
 **Impact on Existing Modules** — always write. List each existing
 module, file, or directory that this change touches. For each one,

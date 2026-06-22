@@ -68,4 +68,19 @@ with independent work.
 
 When all tasks are done, update status.md:
 set `next: run automated checks`, `last_completed: all tasks`.
-Tell the user what was built and ask if they are ready to verify.
+
+Then present a completion summary to the user. State what was done,
+not that it was done — list the files changed, the rough scope of
+each change, and any notable observations that came up during
+implementation. Example:
+
+> All 6 tasks complete. I changed 3 files:
+> - `src/auth/login.ts` — added JWT verification middleware
+> - `src/auth/types.ts` — added TokenPayload interface
+> - `tests/login.test.ts` — 4 new test cases for token expiry
+>
+> One thing worth noting: the existing session store uses in-memory
+> storage. It works for now but won't survive restarts. I recorded
+> this under Gaps.
+
+Ask if the user is ready to verify.

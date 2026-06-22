@@ -29,7 +29,8 @@ Then go back to the original requirements. Present each one in text —
 a brief description of the requirement followed by what you observed.
 For visual changes, include a screenshot or describe the rendered
 output. For API or logic changes, show the call result or test output.
-Ask the user to confirm each item matches what they expected.
+After presenting each requirement's evidence, ask: "Does this match
+expectations, or do you see anything that needs changing?"
 
 If the change is straightforward and the result is clear, you may
 summarize the group rather than walking through each item. Write the

@@ -33,6 +33,21 @@ Do not invent scenarios. If an answer is vague, do not fill in the
 gaps yourself — ask a follow-up or offer your best interpretation
 and ask if it is correct. Encourage the user to ask you questions back.
 
+Each question should open a direction, not fill a blank. Shape every
+question to include your understanding, present 2-3 concrete options,
+and state your recommendation with reasoning. The user can pick an
+option, reject all of them, or build on one — the point is to give
+them something to react to.
+
+Wrong:
+"Which database should we use?"
+
+Right:
+"Persistence — I see two paths. SQLite for zero-setup single-file
+simplicity, good if this is a local tool. Postgres if you expect
+concurrent writes or need JSONB queries. I'd start with SQLite and
+swap later if needed. Which direction fits?"
+
 When the picture is clear, write the summary to a requirements file:
 
 ```
@@ -83,9 +98,22 @@ set `gate: pending_confirmation`, `next: await user confirmation`.
 After the user confirms, update status.md:
 set `gate: none`, `next: proceed to plan stage`.
 
-Before wrapping up, ask the user if they have any remaining questions.
-Mention what was not yet discussed — any directions or tradeoffs left
-unexplored — so the user can decide whether to continue or move on.
+Before wrapping up, present a mapping of what you heard to what you
+wrote. List each key point the user made and which requirement it
+maps to in requirements.md. Example:
+
+> - You mentioned offline support → captured as Requirement 2
+> - You want email-only auth, no social login → captured as
+>   Requirement 3, constraint added
+>
+> Does this mapping look accurate? Anything I miscategorised?
+
+This exposes your reasoning — if a mapping is wrong, the user can
+correct it before you proceed.
+
+After confirming, ask if they have any remaining questions. Mention
+what was not yet discussed so they can decide whether to continue
+or move on.
 
 When the user indicates the requirements are right, or says
 "let's plan", move on. The user can also say "just do it" to skip
