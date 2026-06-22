@@ -66,3 +66,7 @@ Double-check: did you actually move it, not just note it?
 
 After archiving, review the accumulated gaps in `tasks.md`. Mention
 them to the user — any worth pursuing can become new initiatives.
+
+If `.beyond-code/.project/` exists, ask the user: "I learned a few
+things during this initiative. Should I update any project docs?"
+If yes, load the `beyond-code-project-docs` skill to update.

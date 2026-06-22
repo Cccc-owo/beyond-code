@@ -97,39 +97,13 @@ move it to `.archive/` or ask the user what to do with it.
 
 # Understanding the project
 
-When the user asks you to study the project, generate documentation
-under `.beyond-code/.project/`. Only do this on explicit request —
-scanning a project deeply is expensive.
+Load the `beyond-code-project-docs` skill to generate or update
+project documentation. Only trigger on explicit request — "study
+this project" or similar.
 
-```
-.beyond-code/.project/
-  index.md            Project overview, core directories, key conventions
-  architecture.md     Module responsibilities, dependencies, design decisions
-  call-chains.md      Critical code paths and call chains
-```
-
-Each file records when it was generated:
-
-```
----
-generated: YYYY-MM-DD
-commit: abc1234 | none
----
-```
-
-Read the project deeply: start with README and package metadata,
-then the top-level directory structure, then trace imports from
-entry points outward to understand module boundaries and data flow.
-Skip the deep scan if the project is trivially small or the user
-says not to. If the project has an existing doc convention (such
-as a docs/ directory), follow it instead.
-
-When reading these files later, compare the recorded commit or date
-against the current state. If they differ, warn the user the docs
-may be stale.
-
-After completing an initiative, consider whether anything you learned
-should be captured here. Propose an update if so.
+When reading previously generated docs under `.beyond-code/.project/`,
+compare the recorded commit or date against the current state. If
+they differ, warn the user the docs may be stale.
 
 # Commit preferences
 
