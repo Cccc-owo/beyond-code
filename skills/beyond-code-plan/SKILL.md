@@ -40,13 +40,13 @@ The complete file skeleton:
 <!-- omit if no new or changed component interfaces -->
 
 # Tradeoffs & Risks
-<!-- always write -->
+<!-- always write, even if only to state why none exist -->
 
 # Impact on Existing Modules
-<!-- always write -->
+<!-- always write, even if only to state why none exist -->
 
 # Architecture Overview
-<!-- always write -->
+<!-- always write — write this last, after all other sections -->
 ```
 
 **Data Model** — write when introducing new data structures or
@@ -93,7 +93,8 @@ change fits into it.
 After writing `design.md`, review it at least once. Verify: do the
 data structures match the data flow? Do the component interfaces
 satisfy the described contracts? Are all affected modules listed in
-Impact?
+Impact? If any answer is no, revise the affected sections before
+presenting to the user.
 
 ## Write the task list
 
@@ -149,21 +150,19 @@ Present the design and task list to the user. Give the user a choice:
 Then stop. Summarise the key points — what will change, in what
 order — so the user knows what they are confirming.
 
-Confirmation means: "OK", "go ahead", "confirmed", "start",
-"just do it".
+Wait for an unambiguous confirmation: the user must say "go ahead",
+"start", "build it", "just do it", or any phrase that clearly means
+proceed. If the response is ambiguous ("looks good", "sure", "ok"),
+ask explicitly: "Shall I start implementing?"
 
-Not confirmation: "looks good", "makes sense", "seems fine",
-"alright", "sure", "ok", any reply that sounds like discussion or
-tentative agreement. When you see these, do not proceed. Ask again
-explicitly: "Shall I start implementing?"
-
-After writing the design and task list, update status.md:
-set `gate: pending_confirmation`, `next: await user plan approval`.
+After the user confirms, update status.md:
+set `stage: build`, `gate: none`, `next: <first task description>`.
+Then load `beyond-code-build` to proceed.
 
 If they say "just do it", proceed but still write the design and
 task files first.
 
 If the user requests changes, revise the design and task list and
-present again. If this happens repeatedly without convergence, offer
-to capture the open questions and proceed with what has been agreed
-so far.
+present again. After 3 revisions without convergence, stop. Capture
+the open questions in a `## Unresolved` section in design.md,
+present what has been agreed, and ask the user how to proceed.

@@ -11,14 +11,23 @@ description: >
 # Purpose
 
 Generate and maintain project documentation that helps agents
-understand the codebase quickly. Two modes:
+understand the codebase quickly.
 
-- **Scan**: triggered when the user says "study this project" or
-  similar. Do a deep scan and generate fresh docs.
-- **Maintain**: triggered after an initiative is archived, when
-  `.beyond-code/.project/` already exists. Ask the user whether
-  the initiative revealed anything worth capturing, then update
-  only the relevant files.
+# Modes
+
+**Scan** — triggered when the user says "study this project" or
+similar. Do a deep scan and generate fresh docs. If `.beyond-code/
+.project/` already exists, warn the user before overwriting and ask
+whether to regenerate from scratch or update only what changed.
+
+**Maintain** — triggered after an initiative is archived, when
+`.beyond-code/.project/` already exists. Ask the user which areas
+changed (architecture, conventions, entry points, etc.) and update
+only the corresponding files. If the user is unsure, offer to review
+the changes and suggest which docs need updating. Do not regenerate
+all five files from scratch.
+
+Each mode is described in detail below.
 
 ## Scan mode
 
@@ -27,15 +36,6 @@ under `.beyond-code/.project/`. Only do this on explicit request —
 scanning a project deeply is expensive.
 
 ### Files to generate
-
-```
-.beyond-code/.project/
-  index.md           Project positioning, design goals, directory structure
-  architecture.md    Module responsibilities, dependencies, design decisions
-  call-chains.md     Critical code paths
-  conventions.md     Naming conventions, lint rules, code style
-  entry-points.md    Start / build / test / deploy commands (one-liners)
-```
 
 **index.md** — the entry point for any agent. Describe what the
 project does, what it aims to achieve, and how the top-level
@@ -47,13 +47,12 @@ its responsibility, what it depends on, and any notable design
 decisions. Write for someone who needs to understand the codebase
 at a structural level.
 
-**call-chains.md** — trace the most important code paths end to end.
-For each one, describe the sequence of function calls and data
-transformations from entry point to result.
+**call-chains.md** — end-to-end code paths: for each critical user
+action, trace the sequence of function/method calls from entry
+point to result.
 
-**conventions.md** — naming patterns, lint configuration in use,
-code formatting rules, commit conventions. Anything a contributor
-needs to match the project's existing style.
+**conventions.md** — naming patterns, code formatting rules, commit
+conventions, and lint/type-check configuration the project enforces.
 
 **entry-points.md** — the exact commands to start, build, test,
 and deploy the project. One command per line, ready to paste.
@@ -70,17 +69,22 @@ Each file records when and from what state it was generated:
 
 ```
 ---
-generated: YYYY-MM-DD
+generated: <today's date>
 commit: abc1234 | none
 ---
 ```
 
-Read the project deeply: start with README and package metadata,
-then the top-level directory structure, then trace imports from
-entry points outward to understand module boundaries and data flow.
-Skip the deep scan if the project is trivially small or the user
-says not to. If the project has an existing doc convention (such
-as a docs/ directory), follow it instead.
+Read the project: start with README and package metadata, then the
+top-level directory structure, then trace imports from entry points
+outward to understand module boundaries and data flow. Limit the
+deep scan to 20 key source files, prioritized by import count. If
+more depth is needed, ask the user.
+
+"Trivially small" means ≤3 source files and no subdirectories. In
+that case, generate only index.md. Otherwise, generate all 5 files.
+Skip the scan entirely if the user says not to. If the project has
+an existing doc convention (such as a docs/ directory), follow it
+instead.
 
 ### Staleness detection
 
@@ -96,7 +100,10 @@ This mode is triggered from the verify stage after archive. If
 > "I learned a few things during this initiative. Should I update
 > any project docs?"
 
-If the user says yes, ask which areas are affected and update only
-the relevant files. Do not regenerate all five files from scratch —
-only update what changed. Update the generation metadata (date and
-commit) for each modified file.
+If the user says yes, ask which areas changed (architecture,
+conventions, entry points, call chains, or project overview).
+Update only the corresponding files. Do not regenerate all five
+files from scratch — only update what changed. If the user is
+unsure, offer to review the changes and suggest which docs need
+updating. Update the generation metadata (date and commit) for
+each modified file.

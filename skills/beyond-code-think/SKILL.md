@@ -17,6 +17,8 @@ confirms these requirements.
 
 Ask one question at a time. Wait for the user's answer before asking
 the next. Each question goes deeper based on the previous answer.
+If 3+ independent questions remain and answering one won't change the
+next, present them as a numbered list — but let the user answer each.
 
 Ask questions that narrow down what is unclear. Each question should
 build on the last answer, not follow a predefined list. If the user
@@ -24,20 +26,16 @@ describes a UI, ask about interactions and edge states. If they
 describe a backend, ask about data shape and failure modes. Let the
 substance of the request guide what you ask next.
 
-With each question, offer a few reference viewpoints so the user has
-a starting point. For example:
-- "Option A vs Option B — here are the tradeoffs"
-- "Yes or no, and why"
-
 Do not invent scenarios. If an answer is vague, do not fill in the
 gaps yourself — ask a follow-up or offer your best interpretation
 and ask if it is correct. Encourage the user to ask you questions back.
 
-Each question should open a direction, not fill a blank. Shape every
-question to include your understanding, present 2-3 concrete options,
-and state your recommendation with reasoning. The user can pick an
-option, reject all of them, or build on one — the point is to give
-them something to react to.
+Shape every question to expose a design choice, not fill a blank.
+Include your understanding, present concrete options appropriate to
+the decision, and state your recommendation with reasoning. For
+simple binary choices, a brief tradeoff note is enough. The user
+can pick an option, reject all, or build on one — the point is to
+give them something to react to.
 
 Wrong:
 "Which database should we use?"
@@ -47,6 +45,10 @@ Right:
 simplicity, good if this is a local tool. Postgres if you expect
 concurrent writes or need JSONB queries. I'd start with SQLite and
 swap later if needed. Which direction fits?"
+
+If the user asks for something technically impossible or self-
+contradictory, say so directly. Explain the constraint and offer
+the closest feasible alternative.
 
 When the picture is clear, write the summary to a requirements file:
 
@@ -68,14 +70,15 @@ expand each point into a sentence or two. For functional requirements,
 describe what the user should be able to do, not how it will be
 implemented.
 
-Create a status file to track progress:
+Create a status file (schema defined in beyond-code, see Initiative
+Directory Layout):
 
 ```
 .beyond-code/<slug>/status.md
 ---
 stage: think
 gate: pending_confirmation | none
-updated: YYYY-MM-DD
+updated: <today's date>
 ---
 next: <immediate next action>
 last_completed: <what was just finished>
@@ -117,8 +120,10 @@ or move on.
 
 When the user indicates the requirements are right, or says
 "let's plan", move on. The user can also say "just do it" to skip
-confirmation gates entirely — still write requirements, design, and
-task files, but proceed directly to build.
+confirmation gates entirely — write requirements as draft, update
+status.md to stage: plan, then load `beyond-code-plan` to create
+design and tasks. Plan will hand off to build without confirmation.
 
-When moving on, tell the user what you understood and what comes next.
-For example: "Here's what I heard... Ready to plan?"
+When moving on, update status.md:
+set `stage: plan`, `gate: none`, `next: create design.md and tasks.md`.
+Then load `beyond-code-plan` to proceed.
