@@ -3,39 +3,73 @@ name: beyond-code-think
 description: >
   Use when clarifying requirements before coding, the user's intent
   is unclear, needs to narrow down what to build through questions,
-  or entering the think phase of beyond-code. Covers one-question-
-  at-a-time interviewing, requirements file format, and status
-  tracking setup.
+  or entering the think phase of beyond-code. Covers Scope Check,
+  Given/When/Then spec format, and gate.md management.
 ---
+
+# Terminology Reference
+
+This skill uses RFC 2119 keywords:
+
+| Keyword | Meaning |
+|---------|---------|
+| MUST / REQUIRED | Absolute obligation. |
+| MUST NOT | Absolute prohibition. |
+| NEVER | Zero-exception prohibition. |
+| HARD-GATE | Must pass before next stage. |
+| STOP | Cease current action. |
+| ONLY | Exclusive action — no other path permitted. |
+| MAY | Agent discretion. |
+| EVIDENCE BEFORE CLAIMS | No success claim without fresh command output. |
+
+# HARD-GATE: No Code Before Spec
+
+You MUST NOT write or modify ANY code. Your ONLY outputs are
+spec.md and gate.md. Implementation happens in the build stage.
 
 # Purpose
 
-Your task is to clarify the user's intent through focused questioning
-and capture the result in concrete, reviewable documents. Do not plan
-architecture or implementation here — that comes after the user
-confirms these requirements.
+Clarify user intent through focused questioning. Capture the result
+in spec.md with verifiable acceptance criteria. Do NOT plan
+architecture or implementation — that comes after the user confirms
+this spec.
 
-Ask one question at a time. Wait for the user's answer before asking
-the next. Each question goes deeper based on the previous answer.
-If 3+ independent questions remain and answering one won't change the
-next, present them as a numbered list — but let the user answer each.
+# Stage 0: Gate Check
 
-Ask questions that narrow down what is unclear. Each question should
-build on the last answer, not follow a predefined list. If the user
-describes a UI, ask about interactions and edge states. If they
-describe a backend, ask about data shape and failure modes. Let the
-substance of the request guide what you ask next.
+Read `.beyond-code/<slug>/gate.md`.
 
-Do not invent scenarios. If an answer is vague, do not fill in the
-gaps yourself — ask a follow-up or offer your best interpretation
-and ask if it is correct. Encourage the user to ask you questions back.
+If Gate 1 is already cleared, report this and STOP — the initiative
+should proceed to plan, not re-think. If gate.md is missing, create
+it with an empty Gate 1 checklist.
+
+# Stage 1: Scope Check
+
+Before asking clarifying questions, assess: does this feature contain
+≥2 independently deliverable subsystems?
+
+If YES — ask the user to confirm the subsystem split before writing
+any spec. Present a Module Breakdown:
+
+```
+| Module | Description | Initiative Slug | depends_on |
+|--------|-------------|-----------------|------------|
+| ...    | ...         | ...             | none       |
+```
+
+Each module becomes a separate initiative. Start with the first one;
+the rest get summarized in the first spec's Module Breakdown table
+for later.
+
+If NO — proceed to clarifying questions.
+
+# Stage 2: Clarifying Questions
+
+Ask one question at a time. Wait for the answer.
+Each question builds on the last answer, not a predefined list.
 
 Shape every question to expose a design choice, not fill a blank.
-Include your understanding, present concrete options appropriate to
-the decision, and state your recommendation with reasoning. For
-simple binary choices, a brief tradeoff note is enough. The user
-can pick an option, reject all, or build on one — the point is to
-give them something to react to.
+Include your understanding, present concrete options, state your
+recommendation with reasoning.
 
 Wrong:
 "Which database should we use?"
@@ -46,84 +80,80 @@ simplicity, good if this is a local tool. Postgres if you expect
 concurrent writes or need JSONB queries. I'd start with SQLite and
 swap later if needed. Which direction fits?"
 
-If the user asks for something technically impossible or self-
-contradictory, say so directly. Explain the constraint and offer
-the closest feasible alternative.
+Do NOT invent scenarios. If an answer is vague, do NOT fill gaps
+yourself — ask a follow-up or offer your best interpretation and
+ask if it is correct.
 
-When the picture is clear, write the summary to a requirements file:
+If something is technically impossible, say so directly. Explain
+the constraint and offer the closest feasible alternative.
+
+# Stage 3: Write spec.md
+
+When the picture is clear, write spec.md:
 
 ```
-.beyond-code/<slug>/requirements.md
 ---
+slug: <initiative-slug>
 status: draft | confirmed
 ---
-# Goal
-# Target Users
-# Functional Requirements
-# Non-functional Requirements
-# Constraints
+
+# Feature: [one-line description]
+
+## R1: [description — MUST use action verbs, MUST NOT use "support", "integrate", "enhance", "optimize"]
+
+**Given** [precondition]
+**When** [trigger]
+**Then** [observable result — MUST be manually verifiable]
+
+## Constraints
+
+- [hard boundary]
 ```
 
-Write each requirement clearly and concretely enough that someone
-else can read it and know what to build. Avoid single-word entries —
-expand each point into a sentence or two. For functional requirements,
-describe what the user should be able to do, not how it will be
-implemented.
+Every R MUST:
+- Use concrete action verbs (e.g. "display", "call", "respond", "log", "block")
+- Have a manually verifiable Then clause
+- NOT use vague verbs ("support", "integrate", "enhance", "optimize")
 
-Create a status file (schema defined in beyond-code, see Initiative
-Directory Layout):
+If the Scope Check identified sub-systems, append:
 
 ```
-.beyond-code/<slug>/status.md
----
-stage: think
-gate: pending_confirmation | none
-updated: <today's date>
----
-next: <immediate next action>
-last_completed: <what was just finished>
+## Module Breakdown
+
+| Module | Initiative Slug | depends_on |
+|--------|-----------------|------------|
 ```
 
-`gate: pending_confirmation` means the agent is waiting for the user
-to confirm before moving to the next stage. `gate: none` means the
-agent may proceed. After each stage transition and after each
-completed task, update `next` and `last_completed` so a fresh session
-knows exactly what to do without reading any other file.
+# Stage 4: Update gate.md
 
-The slug is lowercase letters and hyphens, derived from the request.
+Append to Gate 1:
 
-After writing the files, ask the user to confirm the requirements.
-Write requirements with status: draft. Change to confirmed only after
-the user agrees the requirements are correct.
+```
+## Gate 1: Spec Confirmed
+- [x] spec.md created: `.beyond-code/<slug>/spec.md`
+- [ ] User confirmed
+```
 
-After writing requirements.md, update status.md:
-set `gate: pending_confirmation`, `next: await user confirmation`.
-After the user confirms, update status.md:
-set `gate: none`, `next: proceed to plan stage`.
+# Stage 5: Present and get confirmation
 
-Before wrapping up, present a mapping of what you heard to what you
-wrote. List each key point the user made and which requirement it
-maps to in requirements.md. Example:
+Present a mapping of what you heard to what you wrote. List each key
+point the user made and which R it maps to in spec.md:
 
-> - You mentioned offline support → captured as Requirement 2
-> - You want email-only auth, no social login → captured as
->   Requirement 3, constraint added
+> - You mentioned X → captured as R1
+> - You want Y → captured as R2, constraint added
 >
-> Does this mapping look accurate? Anything I miscategorised?
+> Does this mapping look accurate?
 
-This exposes your reasoning — if a mapping is wrong, the user can
-correct it before you proceed.
+Set spec.md status to `draft`. Change to `confirmed` ONLY after the
+user agrees the spec is correct.
 
-After confirming, ask if they have any remaining questions. Mention
-what was not yet discussed so they can decide whether to continue
-or move on.
+When confirmed, update gate.md Gate 1:
+```
+- [x] User confirmed: <timestamp>
+- [x] Gate cleared
+```
 
-When the user indicates the requirements are right, or says
-"let's plan", move on. The user can also say "just do it" to skip
-confirmation gates entirely — write requirements as draft, update
-status.md to stage: plan, then load `beyond-code-plan` to create
-design and tasks. Plan will hand off to build without confirmation.
+Then return to the beyond-code router.
 
-When moving on, update status.md:
-set `stage: plan`, `gate: none`, `next: create design.md and tasks.md`.
-Then load `beyond-code-plan` to proceed.
+If the user says "just do it": write spec.md as draft, update gate.md
+Gate 1 as cleared, and return to the router directly.

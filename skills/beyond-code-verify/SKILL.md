@@ -1,91 +1,122 @@
 ---
 name: beyond-code-verify
 description: >
-  Use when verifying implementation results, running automated
-  checks, walking through acceptance criteria with the user, or
-  entering the verify phase of beyond-code. Covers automated checks,
-  requirements verification, and archiving completed initiatives.
+  Use when verifying implementation results, running automated checks,
+  walking through acceptance criteria with the user, or entering the
+  verify phase of beyond-code. Covers automated checks with evidence,
+  per-requirement user acceptance, and archiving completed initiatives.
 ---
+
+# Terminology Reference
+
+This skill uses RFC 2119 keywords:
+
+| Keyword | Meaning |
+|---------|---------|
+| MUST / REQUIRED | Absolute obligation. |
+| MUST NOT | Absolute prohibition. |
+| NEVER | Zero-exception prohibition. |
+| HARD-GATE | Must pass before next stage. |
+| STOP | Cease current action. |
+| ONLY | Exclusive action — no other path permitted. |
+| MAY | Agent discretion. |
+| EVIDENCE BEFORE CLAIMS | No success claim without fresh command output. |
 
 # Purpose
 
-Your task is to verify that the implementation matches the agreed
-requirements, through automated checks and user acceptance, then
-archive the completed initiative.
+Verify that the implementation matches the agreed spec, through
+automated checks and user acceptance, then archive the completed
+initiative.
 
-Run the project's own checks. Detect what tools are available:
-a linter (eslint, ruff, biome), a type checker (tsc, mypy),
-a build step (npm run build, make), and the test suite (jest,
-pytest, go test). Use the exact commands the project already
-defines — package.json scripts, Makefile targets, or project
-config files. Run them in order: lint first, then typecheck,
-then build, then tests.
+# Stage 0: Gate Check
 
-If no automated tools are found, report this: "No automated checks
-detected." Ask the user whether to proceed directly to manual
-verification.
+Read `.beyond-code/<slug>/gate.md`. Gate 3 MUST show all tasks
+complete with commit hashes. If not, STOP and report: "Not all
+tasks are complete. Return to build stage."
 
-When checks fail, find and fix the root cause. If a test fails,
-determine why before touching it:
-- Real regression? Fix the code.
-- Intentional behavior change? Present the old test, the new
-  behavior, and ask the user to confirm the test should be updated.
-- Test tested implementation detail, not behavior? Note it, don't
-  change it — flag as a test quality gap.
-Never modify a test to make it pass without understanding which case
-applies. If a problem resists several attempts, stop and report to
-the user.
+# Stage 1: Automated Checks
 
-Only proceed to requirement verification after automated checks
-pass. If checks fail and cannot be fixed, report the failure and
-ask the user whether to continue or pause.
+Detect the project's tooling: linter, type-checker, build step,
+test suite. Use the exact commands defined in the project (scripts,
+Makefile, config). MUST run in order: lint → typecheck → build → tests.
 
-Present a compact summary table first: | # | Requirement | Status | Evidence |.
-Walk through individual items the user wants to inspect. For each
-requirement presented, show what you observed. For visual changes,
-include a screenshot or describe the rendered output. For API or
-logic changes, show the call result or test output. Ask: "Does this
-match expectations, or do you see anything that needs changing?"
+**EVIDENCE BEFORE CLAIMS**: For each check, you MUST run the full
+command fresh, capture the output, and present the evidence:
 
 ```
-.beyond-code/<slug>/verification.md
----
-automated: passed | failed
-accepted: confirmed | pending
----
-# Automated Checks
-# User Acceptance
-- [ ] Requirement 1 — user confirmed
-- [ ] Requirement 2 — user confirmed
+Lint: `npm run lint`
+→ 0 errors, 0 warnings
+
+Typecheck: `npx tsc --noEmit`
+→ exit 0
+
+Tests: `npm test`
+→ 42/42 passing
 ```
 
-Each checklist item should repeat the functional requirement text from
-requirements.md so the user can trace what is being verified back to
-what was agreed. Automated checks should cover non-functional
-requirements where possible.
+NEVER claim a check passed without running it. NEVER use output
+from a previous run. NEVER extrapolate from partial results.
 
-If the user says a requirement is not met, determine the scope.
-A one-line correction can be fixed and re-verified on the spot.
-Anything larger — missing behavior, wrong approach, unclear spec —
-should not block the current initiative. Record unmet requirements
-in verification.md under `## Unmet Requirements`. For each, note:
-the requirement, what was observed, and whether it needs a one-line
-fix or a new initiative.
+If no automated tools are detected, MUST report: "No automated checks
+detected." Ask whether to proceed to manual verification.
 
+When checks fail, MUST fix the root cause. If a fix resists 3 attempts,
+STOP and report to the user.
+
+# Stage 2: Requirement Verification
+
+MUST present a summary table:
+
+```
+| # | Requirement | Status | Evidence |
+|---|-------------|--------|----------|
+| 1 | R1: [text from spec.md] | ✅ | <what you observed> |
+| 2 | R2: [text from spec.md] | ⬜ | pending user review |
+```
+
+For each R, MUST present what you observed and ask: "Does this match
+expectations?"
+
+MUST update gate.md:
+
+```
+## Gate 4: Verification
+- [ ] Automated checks passed
+- [ ] R1: user confirmed
+- [ ] R2: user confirmed
+```
+
+If a requirement is not met:
+- One-line fix → fix and re-verify on the spot
+- Larger gap → do not block verification. Record as unmet in
+  gate.md, note whether it needs a one-line fix or a new initiative.
+
+# Stage 3: Archive
+
+When all confirmed R's pass and automated checks pass:
+
+1. Create `.beyond-code/.archive/` if needed
+2. MOVE the entire initiative directory to `.beyond-code/.archive/<slug>/`
+3. Verify the move:
+```bash
+ls .beyond-code/.archive/<slug>/
+```
+4. Update gate.md:
+```
 ## Archive
+- [x] Moved to .beyond-code/.archive/<slug>/
+```
 
-Create `.beyond-code/.archive/` if it doesn't exist. Move the entire
-initiative directory to `.beyond-code/.archive/<slug>/` to mark it
-complete. Verify the move by listing `.archive/<slug>/`. If the move
-fails, report the error and do not proceed. Double-check: did you
-actually move it, not just note it?
+If the move fails, MUST report the error. MUST NOT proceed.
 
-After archiving, review the accumulated gaps in `tasks.md`. Mention
-them to the user — any worth pursuing can become new initiatives.
+# Stage 4: Post-Archive
 
-If `.beyond-code/.project/` exists, ask the user: "I learned a few
-things during this initiative. Should I update any project docs?"
-If yes, load the `beyond-code-project-docs` skill to update.
+MUST review accumulated Gaps in gate.md and present them to the user:
+"These gaps were recorded during implementation. Any worth pursuing
+as new initiatives?"
 
-The initiative is now complete. If no other active initiatives exist,
-ask the user what to work on next.
+If `.beyond-code/.project/` exists, ask: "Should I update any
+project docs?" If yes, load `beyond-code-project-docs`.
+
+The initiative is complete. If no other active initiatives exist,
+ask what to work on next.

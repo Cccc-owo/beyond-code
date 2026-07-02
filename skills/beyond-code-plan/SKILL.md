@@ -1,168 +1,190 @@
 ---
 name: beyond-code-plan
 description: >
-  Use when designing architecture before implementing, creating a
-  plan with data models and component contracts, writing design and
-  task documents, or entering the plan phase of beyond-code. Covers
-  design.md five-section format, tasks.md checklist, and confirmation
-  gates.
+  Use when designing architecture and writing the implementation plan,
+  after spec.md is confirmed. Covers Architecture Overview, bite-sized
+  task format, Implementation Bounds, Spec Coverage Self-Review, and
+  Placeholder Scan.
 ---
+
+# Terminology Reference
+
+This skill uses RFC 2119 keywords:
+
+| Keyword | Meaning |
+|---------|---------|
+| MUST / REQUIRED | Absolute obligation. |
+| MUST NOT | Absolute prohibition. |
+| NEVER | Zero-exception prohibition. |
+| HARD-GATE | Must pass before next stage. |
+| STOP | Cease current action. |
+| ONLY | Exclusive action — no other path permitted. |
+| MAY | Agent discretion. |
+| EVIDENCE BEFORE CLAIMS | No success claim without fresh command output. |
+
+# HARD-GATE: No Code Before Plan Confirmed
+
+You MUST NOT write or modify ANY code. Your ONLY outputs are
+plan.md and gate.md updates. Implementation happens in the build
+stage AFTER this plan is confirmed.
 
 # Purpose
 
-Your task is to create a design document and a task list that are
-detailed enough for someone familiar with the codebase to understand
-what will change and why, then get the user's explicit confirmation
-before any code is written.
+Create plan.md — an exhaustive implementation plan that leaves the
+build agent zero room for interpretation. The build agent MUST be
+able to execute the plan without guessing.
 
-## Write the design
+# Stage 0: Gate Check
 
-Start with `design.md` — a document that captures the design thinking
-separate from the execution checklist. The design must be clear enough
-that someone familiar with the codebase can understand what will
-change and why, without reading the task list.
+Read `.beyond-code/<slug>/gate.md`. Gate 1 MUST be cleared before
+proceeding. If not cleared, STOP and report: "Spec is not confirmed.
+Return to think stage."
 
-Create each section below if it applies. If a section is not needed,
-skip it with a one-line note explaining why.
+Read `.beyond-code/<slug>/spec.md`. The plan MUST cover every R.
 
-The complete file skeleton:
+# Stage 1: Write Architecture Overview
 
-```
-.beyond-code/<slug>/design.md
+Write 3-5 paragraphs describing:
+- Key pieces and their responsibilities
+- How they connect
+- What existing modules are touched and how
+- Order of operations for the primary code path
 
-# Data Model
-<!-- omit if no new or changed data structures -->
+Write for someone familiar with the codebase.
 
-# Data Flow
-<!-- omit if data stays within a single component -->
+# Stage 2: Write Global Constraints
 
-# Components & Contracts
-<!-- omit if no new or changed component interfaces -->
-
-# Tradeoffs & Risks
-<!-- always write, even if only to state why none exist -->
-
-# Impact on Existing Modules
-<!-- always write, even if only to state why none exist -->
-
-# Architecture Overview
-<!-- always write — write this last, after all other sections -->
-```
-
-**Data Model** — write when introducing new data structures or
-modifying existing data shapes. Define the key data structures
-involved. For each one, describe its shape, fields, types, and
-invariants. Use pseudo-types or tables — whatever makes the
-structure unambiguous.
-
-**Data Flow** — write when data passes between 2+ components or
-modules. Describe the path data takes through the system for the
-primary use case. Which component produces it, which one transforms
-it, which one consumes it. A text diagram (ASCII or Mermaid) or
-numbered sequence is fine.
-
-**Components & Contracts** — write when adding new components or
-changing existing component interfaces. For each component, describe:
-- Responsibility: what it does in one sentence.
-- Interface: what callers must provide (inputs, preconditions) and
-  what they can expect back (outputs, postconditions, error modes).
-- Dependencies: what other components it calls.
-Do not describe implementation internals — that belongs to the build
-phase.
-
-**Tradeoffs & Risks** — always write. Name at least one design
-tradeoff (why you chose approach A over B) and at least one risk
-(what could go wrong, what assumption could prove false). Write
-for a reviewer who needs to judge whether the plan is sound before
-giving the go-ahead.
-
-**Impact on Existing Modules** — always write. List each existing
-module, file, or directory that this change touches. For each one,
-describe how it is affected — new import, changed interface,
-modified logic, removed code. Be specific enough that someone can
-judge the blast radius without reading the task list.
-
-**Architecture Overview** — always write. Synthesise the sections
-above into a prose overview, three to five paragraphs. Describe the
-key pieces and their responsibilities, how they connect, what
-existing modules are touched and how, and the order of operations
-for the primary code path. Write for someone familiar with the
-codebase — no need to explain what the project does, only how this
-change fits into it.
-
-After writing `design.md`, review it at least once. Verify: do the
-data structures match the data flow? Do the component interfaces
-satisfy the described contracts? Are all affected modules listed in
-Impact? If any answer is no, revise the affected sections before
-presenting to the user.
-
-## Write the task list
-
-Create `tasks.md` — the execution checklist. Build-phase agents work
-from this file alone; they should not need to re-read `design.md`.
+List constraints every task inherits. Include exact values:
+versions, limits, naming rules, platform requirements. Copy verbatim
+from spec.md Constraints section.
 
 ```
-.beyond-code/<slug>/tasks.md
----
-depends_on: <another-slug> | none
----
-
-# Files in Scope
-
-# Tasks
-- [ ] Step 1 — concrete, verifiable action
-- [ ] Step 2 — concrete, verifiable action (depends on: Step 1)
-
-## Gaps
-<!-- Issues discovered during implementation that are out of
-     scope for this initiative. Address as a separate initiative. -->
+> **Global Constraints** (every task inherits these):
+> - [constraint with exact value]
 ```
 
-**Files in Scope**: list exact file paths where the change is known
-in advance. Where a change touches a directory broadly, list the
-directory and the kind of files affected. Be specific enough that the
-build phase knows what it may and may not touch.
+# Stage 3: Write Tasks
 
-**Tasks**: a checklist of concrete, verifiable actions. Each task must
-be completable in one sitting with a clear result. Order by natural
-build sequence — foundation before upper layers. Name each task with
-an action verb: "Add the theme context provider" not "Theme context".
-If a task is not self-explanatory, expand it with enough detail that
-someone else can pick it up and know what to do. If a task depends on
-another, note it.
+Each task MUST follow this format exactly:
 
-Before finalising, review the task list against the design: does
-every design component have corresponding tasks? Are there tasks for
-integrating with the modules listed in Impact?
+```
+## Task N: [Action-verb description]
 
-If the task list grows beyond what can be done in a single session
-or spans two clearly separate concerns, split it into multiple
-initiatives. Declare the dependency with `depends_on` so order is
-preserved.
+**Covers:** R1, R3
+**Files:** Create: `exact/path/a.py`; Modify: `exact/path/b.py:42-60`
+**Consumes:** [upstream interface signatures — exact names and types]
+**Produces:** [downstream interface signatures — exact names and types]
 
-## Present the plan
+- [ ] Step 1: [Concrete action with complete code or exact command]
+- [ ] Step 2: [Verification step with full command and expected output]
+- [ ] Step N: Commit
+```
 
-Present the design and task list to the user. Give the user a choice:
-- Walk through each section of `design.md` in detail, then the task
-  summary
-- Review the architecture overview and a summary of each section
+Task rules:
+- Each step MUST be completable in 2-5 minutes with one clear result
+- Code steps MUST include the complete code, not prose descriptions
+- Command steps MUST include the exact command and expected output
+- The following are FORBIDDEN as step content: "TBD", "TODO",
+  "implement later", "add appropriate error handling", "add validation",
+  "handle edge cases", "Similar to Task N", "参考 Task N",
+  references to types or functions not defined in any task
+  These are plan failures — fix them before presenting.
 
-Then stop. Summarise the key points — what will change, in what
-order — so the user knows what they are confirming.
+# Stage 4: Write Implementation Bounds
 
-Wait for an unambiguous confirmation: the user must say "go ahead",
-"start", "build it", "just do it", or any phrase that clearly means
-proceed. If the response is ambiguous ("looks good", "sure", "ok"),
-ask explicitly: "Shall I start implementing?"
+Write the exhaustive boundary list. The build agent MUST NOT exceed
+these bounds:
 
-After the user confirms, update status.md:
-set `stage: build`, `gate: none`, `next: <first task description>`.
-Then load `beyond-code-build` to proceed.
+```
+## Implementation Bounds
+> BUILD AGENT: You MUST NOT touch any file, create any function,
+> add any import, or introduce any dependency NOT listed below.
+> If a step requires something not in this list, the plan is
+> broken — STOP and report, do not guess.
 
-If they say "just do it", proceed but still write the design and
-task files first.
+### File Inventory (exhaustive)
+| Path | Action (CREATE/MODIFY) | Purpose |
+|------|------------------------|---------|
 
-If the user requests changes, revise the design and task list and
-present again. After 3 revisions without convergence, stop. Capture
-the open questions in a `## Unresolved` section in design.md,
-present what has been agreed, and ask the user how to proceed.
+### API Surface (exhaustive)
+| Signature | Location | Visibility |
+|-----------|----------|------------|
+
+### Dependencies (exhaustive)
+| Package | Version | Purpose |
+|---------|---------|---------|
+
+### Prohibited Actions
+- [ ] No file creation outside File Inventory
+- [ ] No function/class creation outside API Surface
+- [ ] No new dependency outside Dependencies list
+- [ ] No modification to files NOT in File Inventory
+- [ ] No change to existing public interfaces NOT in API Surface
+```
+
+# Stage 5: Spec Coverage Self-Review
+
+Before presenting the plan, verify every spec R has ≥1 task:
+
+```
+## Spec Coverage Self-Review
+| Requirement | Task(s) | Status |
+|-------------|---------|--------|
+| R1          | T1      | ✅     |
+| R2          | —       | ❌     |
+```
+
+MUST NOT present the plan with any ❌ rows. Add tasks for missing
+requirements or revise the task mapping.
+
+# Stage 6: Placeholder Scan
+
+Search plan.md for forbidden patterns. Report results:
+
+```
+## Placeholder Scan
+- [ ] "TBD": 0 instances
+- [ ] "TODO": 0 instances
+- [ ] "implement later": 0 instances
+- [ ] "add appropriate error handling": 0 instances
+- [ ] "add validation": 0 instances
+- [ ] "handle edge cases": 0 instances
+- [ ] "Similar to Task": 0 instances
+- [ ] All types and functions referenced in tasks are defined in a task
+```
+
+# Stage 7: Cross-validate Bounds against Tasks
+
+For each task, verify:
+- Every path in the task's Files field appears in File Inventory
+- Every import/function/class in the task's code steps appears in
+  API Surface or Dependencies
+- No task references a file NOT in File Inventory
+
+Fix any mismatch before presenting.
+
+# Stage 8: Present and Update gate.md
+
+Present the user with:
+1. The Architecture Overview
+2. A summary of tasks (count, order, dependencies)
+3. The Spec Coverage table
+4. The Implementation Bounds
+
+Wait for explicit confirmation.
+
+After confirmation, update gate.md:
+
+```
+## Gate 2: Plan Ready
+- [x] plan.md created: `.beyond-code/<slug>/plan.md`
+- [x] Spec coverage self-review: N/N covered
+- [x] Placeholder scan: 0 found
+- [x] User confirmed: <timestamp>
+- [x] Gate cleared
+```
+
+Return to the beyond-code router.
+
+If "just do it": still write plan.md fully, mark Gate 2 as cleared,
+return to router. The plan MUST still pass self-review.

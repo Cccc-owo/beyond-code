@@ -1,91 +1,161 @@
 ---
 name: beyond-code-build
 description: >
-  Use when executing a confirmed task list, building features task
-  by task, tracking progress through status.md, or entering the
-  build phase of beyond-code. Covers task execution loop, status
-  synchronization, gap tracking, and error handling.
+  Use when executing a confirmed plan, building features task by
+  task, tracking progress through gate.md, or entering the build
+  phase of beyond-code. Covers bounds validation, task execution,
+  deviation logging, and gap tracking.
 ---
+
+# Terminology Reference
+
+This skill uses RFC 2119 keywords:
+
+| Keyword | Meaning |
+|---------|---------|
+| MUST / REQUIRED | Absolute obligation. |
+| MUST NOT | Absolute prohibition. |
+| NEVER | Zero-exception prohibition. |
+| HARD-GATE | Must pass before next stage. |
+| STOP | Cease current action. |
+| ONLY | Exclusive action — no other path permitted. |
+| MAY | Agent discretion. |
+| EVIDENCE BEFORE CLAIMS | No success claim without fresh command output. |
 
 # Purpose
 
-Your task is to execute the task list from `tasks.md`, one task at
-a time. Follow the plan's order, stay in scope, and keep status.md
-updated so progress is always visible.
+Execute the task list from plan.md, one task at a time. Stay within
+the Implementation Bounds. Log every deviation. Keep gate.md updated
+so progress is always visible.
 
-Read `tasks.md`. Follow the task order. Mark each one `- [x]` when
-done.
+# Step 0: Gate Check and Bounds Validation
 
-Read `.beyond-code/config.yaml` for commit preferences (set by the
-beyond-code router — do not create or modify this file). Commits: if
-set to per-task, commit after each completed task. If set to per-plan,
-commit once after all tasks. If set to manual, do not commit on your
-own. Match the format from config (project convention, conventional
-style, or user-written).
+Read `.beyond-code/<slug>/gate.md`. Gate 2 MUST be cleared. If not,
+STOP and report: "Plan is not confirmed. Return to plan stage."
 
-Before starting each task that has `depends_on` in `tasks.md`, check
-that initiative's status.md — it must have reached `stage: verify`
-with `gate: none`.
-If tasks declare a dependency, wait for the prerequisite to complete.
-If two tasks are independent, you may run them in parallel.
+Read `.beyond-code/<slug>/plan.md`.
 
-After each task, mark the checkbox in `tasks.md`. Every 3 tasks, or
-before handing control back to the user, also update:
-- `status.md` field `next` to the next task description
-- `status.md` field `last_completed` to the task just finished
+Before writing ANY code, validate the Implementation Bounds:
+1. For each task's Files field: confirm all paths are in File Inventory
+2. For each task's code steps: grep for `import`, `def`, `class` —
+   confirm all are in API Surface or Dependencies
+3. If ANY mismatch: STOP. Report the mismatch. Do NOT proceed.
 
-When committing (per-task or per-plan), include the task description
-in the commit message.
+This validation MUST complete before Step 1 of Task 1.
 
-Follow the existing patterns in each file. When you encounter a file
-not in the task list:
-- If the tasks cannot be completed without changing it, pause and
-  inform the user. Do not expand scope unilaterally. Update
-  `tasks.md` only after the user approves.
-- If it is an improvement that can wait, note it under `## Gaps`.
+# Step N: Execute Each Task
 
-If something comes up that the task list did not cover, add it to the
-`## Gaps` section of `tasks.md`. For each gap, record:
-`- [ ] <what was discovered> — <why out of scope> — <suggested approach>`.
-Do not expand scope within the current initiative. Address gaps as a
-separate initiative once the current one is complete.
+Read `.beyond-code/config.yaml` for commit preferences. Default to
+`per-task` if config is absent.
 
-If your platform supports delegating work to a sub-agent (e.g. via a
-Task tool), a task is a candidate when it is self-contained — someone
-can complete it by reading only the task description, the relevant
-files, and this skill. If a task is tightly coupled to decisions being
-made in other tasks, keep it in the main session. When delegating,
-include exactly what the sub-agent needs: the task, the file paths,
-the relevant design context, and the path to the initiative directory
-so it can read and update the tasks and status files.
+For each task in plan.md, in order:
+1. Mark it in-progress in gate.md's Task Execution table
+2. Execute each step exactly as written
+3. Run verifications as specified — EVIDENCE BEFORE CLAIMS
+4. After each action, check: did I touch a file NOT in File Inventory?
+   Create a function NOT in API Surface? Add an import NOT in Dependencies?
+5. If yes → log as Deviation in gate.md immediately (see below)
+6. Handle commit per config:
+   - `per-task`: commit now. Record the short commit hash in gate.md.
+   - `per-plan`: do NOT commit yet. Record `pending` in gate.md.
+   - `manual`: do NOT commit. Record `—` in gate.md.
+7. Mark task complete
 
-If a task fails, try up to 3 obvious fixes: correct a typo, fix a
-wrong path or import, adjust an assumption that proved incorrect,
-rerun after a transient failure. If none succeed, or a fix requires
-changing the approach or touching code outside the task list, stop
-and report what you tried. Do not loop silently.
+When a task has `depends_on`: that initiative's gate.md MUST show
+Gate 3 (or equivalent) completed before starting.
 
-If a failing task blocks tasks that depend on it, report which
-subsequent tasks are now blocked and ask the user whether to pause
-the initiative, re-plan, or skip the blocking task and proceed
-with independent work.
+# Deviation Recording
 
-When all tasks are done, update status.md:
-set `stage: verify`, `gate: none`, `next: run automated checks`,
-`last_completed: all tasks`.
+Write to gate.md under the `## Deviations` section:
 
-Then present a completion summary to the user. State what was done,
-not that it was done — list the files changed, the rough scope of
-each change, and any notable observations that came up during
-implementation. Example:
+```
+| Timestamp | Task | Deviation | Rationale |
+|-----------|------|-----------|-----------|
+| HH:MM     | T3   | Created `cache/__init__.py` (not in File Inventory) | Tests needed package init |
+| HH:MM     | T5   | Used `httpx` instead of `requests` (plan said `requests`) | Spec R4 requires async, requests lacks it |
+```
 
-> All 6 tasks complete. I changed 3 files:
-> - `src/auth/login.ts` — added JWT verification middleware
-> - `src/auth/types.ts` — added TokenPayload interface
-> - `tests/login.test.ts` — 4 new test cases for token expiry
->
-> One thing worth noting: the existing session store uses in-memory
-> storage. It works for now but won't survive restarts. I recorded
-> this under Gaps.
+Record BEFORE moving to the next step. Do not batch deviations.
 
-Load `beyond-code-verify` to proceed.
+# Deviation Threshold
+
+If deviations accumulate to ≥5 total, OR the first deviation has
+substantive design impact (new interface, new dependency, changed
+data shape, modified a file not in File Inventory for a non-trivial
+reason): STOP. Present all accumulated deviations to the user:
+
+```
+Deviations from plan.md so far:
+| # | Task | Deviation | Rationale |
+|---|------|-----------|-----------|
+[table]
+
+Options:
+1. Accept all — continue
+2. Reject specific deviations — I will revert and redo
+3. Re-plan — return to plan stage
+
+Which?
+```
+
+Do NOT continue until the user responds.
+
+# Gap Recording
+
+If something comes up that the plan did not cover but is NOT a
+deviation (discovered issue, future concern), record it:
+
+```
+## Gaps
+- [ ] <description> — <why out of scope> — <suggested approach>
+```
+
+Do NOT expand scope. Gaps become separate initiatives after verify.
+
+# Completed Tasks Validation
+
+Before moving from one task to the next, verify:
+- The task's status is recorded in gate.md
+- `per-task` mode: git log confirms the recorded commit exists
+- `per-plan` / `manual` mode: skip the git-log check — commits are not yet made or not agent-managed
+- All verifications in the task's steps passed
+
+# When All Tasks Are Done
+
+Based on config.yaml `commit.when`:
+
+**`per-task`:** All gate.md entries already have individual hashes.
+No additional commit needed.
+
+**`per-plan`:** Commit all changes at once:
+```bash
+git add <all changed files>
+git commit -m "feat: <summary of all tasks>"
+```
+Then update ALL gate.md Task Execution entries with the single commit hash:
+```
+| Task | Commit | Status |
+|------|--------|--------|
+| T1   | abc1234 | ✅     |
+| T2   | abc1234 | ✅     |
+| T3   | abc1234 | ✅     |
+```
+
+**`manual`:** Leave all entries as `—`. User commits separately.
+
+Update gate.md with the final table state:
+```
+## Gate 3: Task Execution
+| Task | Commit | Status |
+|------|--------|--------|
+| T1   | abc1234 | ✅     |  ← per-task: unique hash
+| T2   | —       | ✅     |  ← manual: agent does not commit
+```
+
+Present a completion summary:
+- Files changed, scope of each change
+- Deviations logged (if any)
+- Gaps recorded (if any)
+- If per-plan: the single commit hash covering all tasks
+
+Return to the beyond-code router to enter verify stage.
