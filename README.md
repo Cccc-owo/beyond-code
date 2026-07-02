@@ -2,7 +2,7 @@
 
 A lightweight, natural-language-driven interaction skill for coding agents.
 
-Make the agent understand your intent. Make the plan pass your review. Make every action start with your consent. Make the result earn your acceptance.
+Make the agent understand your intent. Force the plan through your review. Constrain every action to your consent. Demand evidence before acceptance.
 
 English | [中文](README_zh-CN.md)
 
@@ -10,19 +10,19 @@ English | [中文](README_zh-CN.md)
 
 In my vibe coding practice, I tried several AI-process-driven skills: [Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec), [obra/superpowers](https://github.com/obra/superpowers), [open-gsd/gsd-core](https://github.com/open-gsd/gsd-core). They are powerful, but I ran into problems.
 
-Some are clean and lightweight, yet after generating a plan they jump straight to ask for my permission without explaining the plan. I often have to ask the agent to walk me through the approach and revise the plan myself. The final verification is also shallow — I still find quality issues when I test things by hand.
-
-Some are thorough and disciplined, but every step requires CLI interactions or bash commands to gather state, burning context on infrastructure instead of thinking.
+Some are clean and lightweight, yet after generating a plan they jump straight to ask for my permission without explaining the plan. Some are thorough and disciplined, but every step requires CLI interactions or bash commands to gather state, burning context on infrastructure instead of thinking.
 
 These skills share a deeper issue: they trust the agent too much and rely on their own internal terminology to constrain it. So I stopped using them and found that with the same token budget, a flexible process of my own could work better. I designed this skill to help developers and agents collaborate more effectively and produce code that actually matches expectations.
 
 ## Philosophy
 
-User intent comes first. Code serves the user, so the agent must clarify what the user actually wants. The plan must be reviewed and approved before execution starts. The outcome must satisfy the user before the work is declared done.
+**User intent before code.** The agent MUST NOT write code until the spec is confirmed. Every requirement must be traceable to a concrete acceptance criterion.
 
-The process is a means, not an end. Stay light. Let user feedback determine what happens next. If a task is simple enough, skip the ceremony.
+**Plan exhaustively, execute within bounds.** The plan must list every file, function, and dependency the build agent may touch. Anything not in that list is a deviation — and deviations trigger review.
 
-Invisible is best. The process should blend naturally into conversation and development. No jargon to confuse, no heavy workflow to frustrate. This skill is simply a distillation of how I already work.
+**Evidence, not claims.** EVIDENCE BEFORE CLAIMS. No "should be fine." No extrapolation from old output. Run the command fresh, show the output, then make your claim.
+
+**The process uses hard language, not soft suggestions.** The skill suite uses RFC 2119 keywords (MUST, MUST NOT, NEVER, HARD-GATE, STOP) throughout. An agent that skips a gate violates the skill.
 
 ## Install
 
@@ -30,91 +30,53 @@ Invisible is best. The process should blend naturally into conversation and deve
 npx skills add Cccc-owo/beyond-code
 ```
 
-Triggered by natural language or manual invocation. Say "let's plan first", or the agent should activate automatically when the task involves architectural decisions or spans multiple files.
+Triggered by natural language or manual invocation. Say "let's plan first", or the agent should activate automatically when the task involves architectural decisions or spans multiple files. The ONLY skip condition: a trivial bug fix in a small-scale project (e.g. a script under ~100 lines) where the user explicitly says "skip beyond-code".
 
 ## Flow
 
-```txt
-triggered /beyond-code
+```
+Think ──[HARD-GATE]──→ Plan ──[HARD-GATE]──→ Build ──[HARD-GATE]──→ Verify
 
-          |
-          v
-     [check scope]
-          |
-    +-----+-----+
-    |           |
-  trivial    needs design
-    |           |
-    v           v
-  just do    +-- THINK ---------+
-  (no skill) |  one question    |
-             |  at a time       |
-             |                  |
-             |  skip:           |
-             |  "just plan it"  |
-             +--------+---------+
-                      | requirements confirmed
-                      v
-             +-- PLAN ----------+
-             |  architecture    |
-             |  + task list     |
-             |                  |
-             |  !! gate:        |
-             |  must confirm    |
-             |  shortcut:       |
-             |  "just do it"   |
-             +--------+---------+
-                      | user says OK
-                      v
-             +-- BUILD ---------+
-             |  task by task     |
-             |  stay in scope    |
-             |  discoveries ->   |
-             |  Gaps             |
-             |  stuck? -> stop   |
-             |  + report         |
-             +--------+---------+
-                      | all tasks done
-                      v
-             +-- VERIFY --------+
-             |  auto checks     |
-             |  + user accept   |
-             |                  |
-             |  !! gate:        |
-             |  must accept     |
-             +--------+---------+
-                      | user confirms
-                      v
-             +-- ARCHIVE -------+
-             |  move to         |
-             |  .archive/       |
-             +------------------+
+  │                      │                       │                        │
+  └── spec.md            └── plan.md             └── commits +           └── checks +
+       (what +                 (how +                  deviations              acceptance +
+        acceptance)            exhaustive              logged in               archive
+                               bounds)                 gate.md)
 ```
 
-Saying something like "study this project" triggers a deep scan that generates project documentation for the agent.
+**Think** — One question at a time. Scope Check detects multi-subsystem features and splits them into separate initiatives. Produces `spec.md` with Given/When/Then requirements. Vague verbs ("support", "integrate", "enhance") are forbidden.
 
-```txt
-beyond-code/.project/
-  ├── index.md          project overview, core directories, key conventions
-  ├── architecture.md   module responsibilities, dependencies, design decisions
-  └── call-chains.md    critical code paths and call chains
-```
+**Plan** — Architecture overview + bite-sized tasks with exact file paths, complete code, and expected command output. Exhaustive Implementation Bounds (File Inventory, API Surface, Dependencies, Prohibited Actions). Spec Coverage self-review + Placeholder Scan before presentation.
+
+**Build** — Step 0 validates Implementation Bounds. Tasks execute within bounds. Deviations logged in real-time; ≥5 or first substantive deviation triggers STOP and user review. Commit behavior respects config.yaml (per-task / per-plan / manual).
+
+**Verify** — Automated checks with EVIDENCE BEFORE CLAIMS. Per-requirement user acceptance. Archive completed initiatives to `.archive/`.
 
 ## Directory Structure
 
-```txt
-.beyond-code/
-├── <slug>/
-│   ├── requirements.md      # confirmed requirements
-│   ├── plan.md              # plan + tasks + discoveries left undone
-│   ├── status.md            # current stage
-│   └── verification.md      # auto checks + user acceptance
-├── .archive/                # completed initiatives
-└── .project/                # project context docs (manual trigger)
-    ├── index.md             #   overview, core dirs, conventions
-    ├── architecture.md      #   module responsibilities, deps, design decisions
-    └── call-chains.md       #   critical code paths
 ```
+.beyond-code/
+├── config.yaml               # commit preferences
+├── <slug>/
+│   ├── spec.md               # what to build + acceptance criteria
+│   ├── plan.md               # how to build + exhaustive bounds + tasks
+│   └── gate.md               # progress ledger — single source of truth
+├── .archive/                 # completed initiatives
+└── .project/                 # project context docs (manual trigger)
+```
+
+## Skill Architecture
+
+```
+beyond-code (Router)
+  ├── think      → produce spec.md
+  ├── plan       → produce plan.md
+  ├── build      → execute tasks, log deviations
+  ├── verify     → checks + acceptance + archive
+  └── project-docs → deep scan (explicit trigger only)
+```
+
+Every sub-skill embeds a Terminology Reference block and re-declares the code-before-spec prohibition. Each checks gate.md before proceeding.
 
 ## License
 

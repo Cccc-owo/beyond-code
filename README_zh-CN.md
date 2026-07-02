@@ -2,7 +2,7 @@
 
 一个轻量、自然语言驱动的 Coding Agent 交互 Skill
 
-让 Agent 明确你的需求，让做出的计划经过你的审核，让 Agent 的行动始于你的同意，让最终成果经过你的检验。
+让 Agent 明确你的需求。强制方案经过你的审核。约束 Agent 的每一步行动。要求 Agent 拿出证据而非口头声称。
 
 [English](README.md) | 中文
 
@@ -10,21 +10,19 @@
 
 在 Vibe Coding 实践中，我曾试过几个 AI 流程主导的 Skills，比如 [Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec), [obra/superpowers](https://github.com/obra/superpowers), [open-gsd/gsd-core](https://github.com/open-gsd/gsd-core)。
 
-在感受它们的强大的同时，我也遇到了一些问题。
+在感受它们的强大的同时，我也遇到了一些问题。有些 Skills 轻量但 plan 不细就催你确认，验收浮于表面。有些认真但每一步都需要 CLI 交互，上下文成本高。
 
-有些 Skills 的流程相对轻量干净，但生成计划方案后不等我确认细节就直接问我开始写代码了，我多数时候不放心，故还需要再让 Agent 讲讲方案思路和修改计划；此外最后计划的验证也相对敷衍，自己实际测试的时候还是会发现有一点质量问题。
-
-有些 Skills 的流程比较重，也执行地比较认真，但它每一步都需要通过 cli 交互或 bash 命令来获取信息，这无疑增加了一定的上下文成本。
-
-这些 Skills 都有潜在的一个问题，即过于信任 Agent，且偏好用自己定义的术语来约束 Agent。于是我决定抛开这些 Skills，发现在同样 tokens 用量的情况下，可能用自己的一套灵活的流程会更为高效。于是我设计了这个 Skill，来让人类更好地与 Agent 交互，得到更符合预期的代码。
+更重要的是，它们都过于信任 Agent，且偏好用自己定义的术语约束 Agent。于是我决定抛开这些 Skills，用自己的流程设计了这个 Skill，来让人类更好地与 Agent 交互，得到更符合预期的代码。
 
 ## 设计理念
 
-以用户需求为第一优先——代码是服务于用户的，Agent 自然需要明确用户的具体需求，实现方案也需要用户进行严格审核并同意才开始执行，最终成果还是得让用户满意才算真正达成任务。
+**需求先于代码。** Agent 在 spec 未确认前 MUST NOT 写任何代码。每个需求必须有可追溯的验收标准。
 
-流程是手段而不是目的——轻流程，根据用户的反馈来判断目前、下一步该怎么做。如果是并不需要太复杂的思考和讨论的轻量需求，就不需要经过复杂的流程。
+**穷举边界，禁止越界。** plan 必须列出 build agent 可以触碰的所有文件、函数、依赖。超出清单的一律是 deviation，累计触发用户审查。
 
-不存在就是最好的存在——让流程自然融入对话和开发，不必用术语让人迷惑，不必用复杂的流程让人烦躁。这个 Skill 的流程本身就是对我自身开发过程的总结。
+**证据，而非声称。** EVIDENCE BEFORE CLAIMS。禁止 "应该没问题"、"看起来对"，必须跑命令、看输出、再下结论。
+
+**用硬语言，不用软建议。** 全 skill 使用 RFC 2119 关键词（MUST, MUST NOT, NEVER, HARD-GATE, STOP）。跳过门禁 = 违反 skill。
 
 ## 使用
 
@@ -32,91 +30,52 @@
 npx skills add Cccc-owo/beyond-code
 ```
 
-通过自然语言触发或手动调用，如「先计划一下」，或者任务较为复杂，需要架构决策时 Agent 应该自行调用。
+通过自然语言触发或手动调用，如"先计划一下"。仅在极小规模项目（如 ~100 行的脚本）的 trivial bug fix + 用户明确说"skip beyond-code"时才可以跳过。
 
 ## 流程
 
-```txt
-triggered /beyond-code 
+```
+Think ──[HARD-GATE]──→ Plan ──[HARD-GATE]──→ Build ──[HARD-GATE]──→ Verify
 
-          |
-          v
-     [check scope]
-          |
-    +-----+-----+
-    |           |
-  trivial    needs design
-    |           |
-    v           v
-  just do    +-- THINK ---------+
-  (no skill) |  one question    |
-             |  at a time       |
-             |                  |
-             |  skip:           |
-             |  "just plan it"  |
-             +--------+---------+
-                      | requirements confirmed
-                      v
-             +-- PLAN ----------+
-             |  architecture    |
-             |  + task list     |
-             |                  |
-             |  !! gate:        |
-             |  must confirm    |
-             |  shortcut:       |
-             |  "just do it"   |
-             +--------+---------+
-                      | user says OK
-                      v
-             +-- BUILD ---------+
-             |  task by task     |
-             |  stay in scope    |
-             |  discoveries ->   |
-             |  Gaps             |
-             |  stuck? -> stop   |
-             |  + report         |
-             +--------+---------+
-                      | all tasks done
-                      v
-             +-- VERIFY --------+
-             |  auto checks     |
-             |  + user accept   |
-             |                  |
-             |  !! gate:        |
-             |  must accept     |
-             +--------+---------+
-                      | user confirms
-                      v
-             +-- ARCHIVE -------+
-             |  move to         |
-             |  .archive/       |
-             +------------------+
+  │                      │                       │                        │
+  └── spec.md            └── plan.md             └── commits +           └── 检查 +
+       (做什么 +              (怎么做 +                  deviations             验收 +
+        验收标准)             穷举边界)                 记录于 gate.md          归档)
 ```
 
-通过类似「研究一下当前项目」的表述，可以触发deep scan，这会生成项目文档供 Agent 参考。
+**Think** — 一次一问。Scope Check 检测多子系统 feature，自动拆分为多个 initiative。产出 `spec.md`，Given/When/Then 格式，禁止模糊动词（"支持"、"增强"、"整合"）。
 
-```txt
-beyond-code/.project/
-  ├── index.md          项目入口、核心目录、关键约定
-  ├── architecture.md   模块职责、依赖关系、设计决策
-  └── call-chains.md    关键调用链/代码路径
-```
+**Plan** — 架构概览 + bite-sized tasks（含精确文件路径、完整代码、预期命令输出）。穷举 Implementation Bounds（文件清单、API 清单、依赖清单、禁止行为）。自检 spec 覆盖 + 占位符扫描后呈现。
+
+**Build** — Step 0 先验证 Bounds 无冲突。task 在边界内执行。Deviation 实时记录；≥5 条或首个实质影响 deviation 触发 STOP 并展示给用户。commit 行为尊重 config.yaml。
+
+**Verify** — 自动化检查 + EVIDENCE BEFORE CLAIMS。逐需求用户验收。完成归档至 `.archive/`。
 
 ## 工作目录结构
 
-```txt
-.beyond-code/
-├── <slug>/
-│   ├── requirements.md      # 确认后的需求
-│   ├── plan.md              # 方案 + 任务 + 发现但没做的事
-│   ├── status.md            # 当前阶段
-│   └── verification.md      # 自动检查 + 用户验收
-├── .archive/                # 已完成的 initiative
-└── .project/                # 项目上下文文档（手动触发
-    ├── index.md             #   概览、核心目录、约定
-    ├── architecture.md      #   模块职责、依赖、设计决策
-    └── call-chains.md       #   关键调用链
 ```
+.beyond-code/
+├── config.yaml               # commit 偏好设置
+├── <slug>/
+│   ├── spec.md               # 做什么 + 验收标准
+│   ├── plan.md               # 怎么做 + 穷举边界 + task 列表
+│   └── gate.md               # 进度账本 — 唯一状态源
+├── .archive/                 # 已完成的 initiative
+└── .project/                 # 项目上下文文档（手动触发）
+```
+
+## Skill 架构
+
+```
+beyond-code (路由)
+  ├── think      → 产出 spec.md
+  ├── plan       → 产出 plan.md
+  ├── build      → 执行 task，记录 deviation
+  ├── verify     → 检查 + 验收 + 归档
+  └── project-docs → deep scan（显式触发）
+```
+
+每个子 skill 内嵌 Terminology Reference 表格，并重申禁止代码前的禁令。每个子 skill 加载时检查 gate.md 确认上一关已通过。
 
 ## LICENSE
 
